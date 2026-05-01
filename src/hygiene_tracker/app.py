@@ -225,7 +225,7 @@ def _completion_message(task_name: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the hygiene tracker dashboard")
+    parser = argparse.ArgumentParser(description="Run the hygiene tracker device display")
     parser.add_argument("--config", help="Path to config.toml")
     parser.add_argument("--web", action="store_true", help="Enable the optional local web UI")
     args = parser.parse_args()

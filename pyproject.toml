@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hygiene-tracker"
 version = "0.1.0"
-description = "Offline-first Raspberry Pi hygiene routine dashboard"
+description = "Offline-first Raspberry Pi hygiene routine display"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
     { name = "Hygiene Tracker contributors" },
 ]
-keywords = ["raspberry-pi", "sqlite", "pygame", "hygiene", "dashboard"]
+keywords = ["raspberry-pi", "sqlite", "pygame", "hygiene", "framebuffer", "tft"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console :: Framebuffer",

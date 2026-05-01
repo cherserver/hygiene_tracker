@@ -24,6 +24,11 @@ On Linux/macOS, activate the environment with:
 - Add or update tests for scheduling, storage, and app behavior changes.
 - Run `python -m unittest discover -s tests`.
 
+## Commit Messages
+
+Use Conventional Commits for project history, such as `feat: add calendar sync`,
+`fix: handle empty task lists`, or `docs: update setup notes`.
+
 ## Configuration and Secrets
 
 Do not commit local `config.toml`, SQLite databases, Google OAuth credentials,

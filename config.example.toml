@@ -39,7 +39,7 @@ menu = 19
 bounce_time = 0.08
 
 [calendar]
-# When enabled, Google Calendar expanded event instances drive the dashboard.
+# When enabled, Google Calendar expanded event instances drive the device display.
 # SQLite remains the offline cache and completion history.
 enabled = false
 calendar_id = "primary"

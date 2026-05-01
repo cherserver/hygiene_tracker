@@ -1,13 +1,22 @@
 # Hygiene Tracker
 
-Offline-first hygiene routine dashboard for a Raspberry Pi Zero 2 W with an Argon40 display. It shows recurring cleaning tasks, highlights the selected task, tracks completion history in SQLite, and supports physical buttons for navigation.
+Offline-first hygiene routine display for a Raspberry Pi Zero 2 W with a small Argon40 SPI/TFT screen. It is designed as a single-purpose household appliance face: always-on, readable on a low-brightness/low-color display, and focused on recurring hygiene tasks rather than general dashboard widgets.
+
+The device shows each task with equal visual weight most of the time. Selection is temporary and only exists so a physical button can mark a task complete. The display uses plain timing labels such as `7 days`, `1 day`, and `Today`; overdue tasks keep the same day wording and rely on red color to communicate urgency.
+
+The visual language is intentionally simple for the TFT: seafoam green for clean/normal, dry-sand amber for used progress and today, and coral red for overdue status. Task rows use stronger borders and solid surfaces so the interface stays legible on the physical screen.
 
 ## Features
 
 - SQLite task definitions and completion history
 - Next due date calculated from the last completed date
-- States: OK, Due soon, Due today, Overdue
-- Pygame display UI for an always-on dashboard
+- Device display optimized for a 320x240 low-color TFT
+- Plain task timing labels: days remaining, Today, or overdue days in red
+- Two-color cleanness gauge: green remaining time covered by dry-sand used time
+- Equal-weight task rows with temporary selection highlight
+- Task-aware completion flash messages
+- Pygame display UI for desktop testing
+- Direct framebuffer renderer for small SPI/TFT screens without X11
 - gpiozero button support with keyboard fallback
 - Optional local web UI for editing task names and intervals
 - Optional Google Calendar-driven task source with offline SQLite cache
@@ -30,7 +39,7 @@ When the database is first seeded, tasks start as due today. After a task is mar
 | Previous task | Up | Up or W |
 | Next task | Down | Down or S |
 | Mark done today | Done | Enter or Space |
-| History screen | Menu/Back | Tab or H |
+| Log screen | Menu/Back | Tab or H |
 | Quit desktop test run | - | Esc or Q |
 
 ## Install on Raspberry Pi
@@ -58,7 +67,7 @@ Edit `/etc/hygiene-tracker/config.toml`, set `display_backend = "fbdev"` and `fr
 
 ## Google Calendar Mode
 
-Calendar mode lets a dedicated Google Calendar drive exact due dates. The app expands recurring Google events into local SQLite rows, so the dashboard still boots and displays the last synced schedule when offline. Marking an item done records local completion history for that event occurrence; it does not edit Google Calendar.
+Calendar mode lets a dedicated Google Calendar drive exact task dates. The app expands recurring Google events into local SQLite rows, so the device still boots and displays the last synced schedule when offline. Marking an item done records local completion history for that event occurrence; it does not edit Google Calendar.
 
 Create a dedicated calendar, such as `Hygiene`, and add recurring all-day events for the tasks you want displayed.
 
@@ -111,7 +120,7 @@ Run an initial sync:
 hygiene-tracker-calendar-sync --config /etc/hygiene-tracker/config.toml
 ```
 
-After that, the dashboard service syncs in the background at `sync_interval_minutes`.
+After that, the display service syncs in the background at `sync_interval_minutes`.
 
 ## Run Manually
 
@@ -127,7 +136,7 @@ On the Pi framebuffer:
 hygiene-tracker --config /etc/hygiene-tracker/config.toml --web
 ```
 
-The optional web UI listens on the configured port. With mDNS/Avahi configured, use `http://hygiene-tracker.local:8080`; otherwise use the Pi IP address.
+The optional web UI listens on the configured port. It is an admin surface for editing tasks, not the primary device experience. With mDNS/Avahi configured, use `http://hygiene-tracker.local:8080`; otherwise use the Pi IP address.
 
 ## Autostart With systemd
 
@@ -158,8 +167,8 @@ Project layout:
 
 - `src/hygiene_tracker/schedule.py` contains date and due-state logic
 - `src/hygiene_tracker/storage.py` owns SQLite schema, seed data, and history
-- `src/hygiene_tracker/display.py` renders the pygame dashboard
-- `src/hygiene_tracker/framebuffer_display.py` renders directly to `/dev/fb*` without X11
+- `src/hygiene_tracker/display.py` renders the desktop/Pygame device display
+- `src/hygiene_tracker/framebuffer_display.py` renders the TFT device display directly to `/dev/fb*` without X11
 - `src/hygiene_tracker/buttons.py` maps gpiozero buttons to actions
 - `src/hygiene_tracker/web.py` serves the optional local web UI
 - `src/hygiene_tracker/google_calendar.py` syncs Google Calendar event instances into SQLite
