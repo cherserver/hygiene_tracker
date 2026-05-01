@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hygiene-tracker"
+version = "0.1.0"
+description = "Offline-first Raspberry Pi hygiene routine dashboard"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Hygiene Tracker contributors" },
+]
+keywords = ["raspberry-pi", "sqlite", "pygame", "hygiene", "dashboard"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console :: Framebuffer",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+]
+dependencies = [
+    "gpiozero>=2.0",
+    "google-api-python-client>=2.0",
+    "google-auth-httplib2>=0.2",
+    "google-auth-oauthlib>=1.2",
+    "Pillow>=10.0",
+    "pygame>=2.5",
+]
+
+[project.scripts]
+hygiene-tracker = "hygiene_tracker.app:main"
+hygiene-tracker-web = "hygiene_tracker.web:main"
+hygiene-tracker-seed = "hygiene_tracker.seed:main"
+hygiene-tracker-google-auth = "hygiene_tracker.google_calendar:main_auth"
+hygiene-tracker-calendar-sync = "hygiene_tracker.google_calendar:main_sync"
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

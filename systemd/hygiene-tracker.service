@@ -1,0 +1,21 @@
+[Unit]
+Description=Hygiene Tracker Dashboard
+After=multi-user.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cher
+Group=cher
+SupplementaryGroups=video input gpio spi
+WorkingDirectory=/opt/hygiene-tracker
+Environment=PYTHONUNBUFFERED=1
+Environment=SDL_AUDIODRIVER=dummy
+ExecStartPre=+/bin/sh -c 'TERM=linux setterm --cursor off --blank 0 --powerdown 0 > /dev/tty1'
+ExecStart=/opt/hygiene-tracker/.venv/bin/hygiene-tracker --config /etc/hygiene-tracker/config.toml --web
+ExecStopPost=+/bin/sh -c 'TERM=linux setterm --cursor on > /dev/tty1'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

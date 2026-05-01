@@ -1,0 +1,51 @@
+# Copy to /etc/hygiene-tracker/config.toml or pass with --config.
+
+database_path = "/var/lib/hygiene-tracker/hygiene.sqlite3"
+
+# Use "fbdev" for small SPI/TFT framebuffer displays without X11.
+# Use "pygame" for desktop testing or systems with an SDL display backend.
+display_backend = "fbdev"
+fullscreen = true
+screen_width = 320
+screen_height = 240
+
+# X positions, in screen pixels, for button captions above the four physical buttons.
+# Tune these after looking at the real case alignment.
+button_label_centers = [56, 123, 190, 257]
+selection_timeout_seconds = 12
+
+# For fbdev, set framebuffer to the device created by the TFT overlay.
+# tft9341 commonly appears as /dev/fb1. Leave empty to auto-pick a TFT-like fb.
+framebuffer = "/dev/fb1"
+
+# These are only used by the pygame backend.
+# Leave these empty first so SDL auto-detects the display backend.
+# For Raspberry Pi OS Lite/console, try video_driver = "kmsdrm".
+# For Raspberry Pi OS Desktop, try display = ":0" with video_driver = "x11".
+# Older framebuffer setups may use framebuffer = "/dev/fb0" or "/dev/fb1".
+video_driver = ""
+display = ""
+
+due_soon_fraction = 0.2
+web_host = "0.0.0.0"
+web_port = 8080
+
+[buttons]
+# Update these BCM pin numbers for the Argon40 button wiring on your unit.
+up = 5
+down = 6
+done = 13
+menu = 19
+bounce_time = 0.08
+
+[calendar]
+# When enabled, Google Calendar expanded event instances drive the dashboard.
+# SQLite remains the offline cache and completion history.
+enabled = false
+calendar_id = "primary"
+credentials_path = "/etc/hygiene-tracker/google-credentials.json"
+token_path = "/var/lib/hygiene-tracker/google-token.json"
+auth_port = 8765
+days_ahead = 120
+sync_interval_minutes = 60
+due_soon_days = 3

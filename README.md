@@ -1,0 +1,175 @@
+# Hygiene Tracker
+
+Offline-first hygiene routine dashboard for a Raspberry Pi Zero 2 W with an Argon40 display. It shows recurring cleaning tasks, highlights the selected task, tracks completion history in SQLite, and supports physical buttons for navigation.
+
+## Features
+
+- SQLite task definitions and completion history
+- Next due date calculated from the last completed date
+- States: OK, Due soon, Due today, Overdue
+- Pygame display UI for an always-on dashboard
+- gpiozero button support with keyboard fallback
+- Optional local web UI for editing task names and intervals
+- Optional Google Calendar-driven task source with offline SQLite cache
+- systemd unit for autostart
+
+## Default Tasks
+
+| Task | Interval |
+| --- | --- |
+| Cat fountain | every 7 days |
+| Air conditioner | every 1 month |
+| Full floor cleaning with steam | every 2 months |
+
+When the database is first seeded, tasks start as due today. After a task is marked done, its next due date is calculated from that completion date.
+
+## Controls
+
+| Action | Button | Keyboard fallback |
+| --- | --- | --- |
+| Previous task | Up | Up or W |
+| Next task | Down | Down or S |
+| Mark done today | Done | Enter or Space |
+| History screen | Menu/Back | Tab or H |
+| Quit desktop test run | - | Esc or Q |
+
+## Install on Raspberry Pi
+
+```bash
+sudo apt update
+sudo apt install -y python3-venv python3-pip python3-pygame python3-pil python3-gpiozero sqlite3 avahi-daemon
+sudo mkdir -p /opt/hygiene-tracker /etc/hygiene-tracker /var/lib/hygiene-tracker
+sudo chown -R "$USER:$USER" /opt/hygiene-tracker /var/lib/hygiene-tracker
+sudo usermod -aG video,input,gpio,spi "$USER"
+```
+
+Copy this project into `/opt/hygiene-tracker`, then:
+
+```bash
+cd /opt/hygiene-tracker
+python3 -m venv .venv --system-site-packages
+. .venv/bin/activate
+pip install -e .
+cp config.example.toml /etc/hygiene-tracker/config.toml
+hygiene-tracker-seed --config /etc/hygiene-tracker/config.toml
+```
+
+Edit `/etc/hygiene-tracker/config.toml`, set `display_backend = "fbdev"` and `framebuffer = "/dev/fb1"` for the confirmed `fb_ili9340` display, and set the BCM GPIO pins for the Argon40 display buttons on your hardware.
+
+## Google Calendar Mode
+
+Calendar mode lets a dedicated Google Calendar drive exact due dates. The app expands recurring Google events into local SQLite rows, so the dashboard still boots and displays the last synced schedule when offline. Marking an item done records local completion history for that event occurrence; it does not edit Google Calendar.
+
+Create a dedicated calendar, such as `Hygiene`, and add recurring all-day events for the tasks you want displayed.
+
+Install Google client libraries on the Pi:
+
+```bash
+cd /opt/hygiene-tracker
+. .venv/bin/activate
+pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+pip install -e . --no-deps
+```
+
+In Google Cloud Console:
+
+1. Enable the Google Calendar API.
+2. Create an OAuth client with application type `Desktop app`.
+3. Download the JSON file to `/etc/hygiene-tracker/google-credentials.json`.
+4. If the app is in testing mode, add your Google account as a test user.
+
+Set `/etc/hygiene-tracker/config.toml`:
+
+```toml
+[calendar]
+enabled = true
+calendar_id = "primary"
+credentials_path = "/etc/hygiene-tracker/google-credentials.json"
+token_path = "/var/lib/hygiene-tracker/google-token.json"
+auth_port = 8765
+days_ahead = 120
+sync_interval_minutes = 60
+due_soon_days = 3
+```
+
+For a non-primary calendar, use its calendar ID from Google Calendar settings.
+
+Authorize once over SSH with local port forwarding:
+
+```bash
+ssh -L 8765:127.0.0.1:8765 cher@hygiene.local
+cd /opt/hygiene-tracker
+. .venv/bin/activate
+hygiene-tracker-google-auth --config /etc/hygiene-tracker/config.toml
+```
+
+Open the printed URL in your desktop browser. The OAuth callback returns through the SSH tunnel and saves `/var/lib/hygiene-tracker/google-token.json`.
+
+Run an initial sync:
+
+```bash
+hygiene-tracker-calendar-sync --config /etc/hygiene-tracker/config.toml
+```
+
+After that, the dashboard service syncs in the background at `sync_interval_minutes`.
+
+## Run Manually
+
+Desktop/windowed test:
+
+```bash
+hygiene-tracker --config config.example.toml --web
+```
+
+On the Pi framebuffer:
+
+```bash
+hygiene-tracker --config /etc/hygiene-tracker/config.toml --web
+```
+
+The optional web UI listens on the configured port. With mDNS/Avahi configured, use `http://hygiene-tracker.local:8080`; otherwise use the Pi IP address.
+
+## Autostart With systemd
+
+```bash
+sudo cp systemd/hygiene-tracker.service /etc/systemd/system/hygiene-tracker.service
+sudo systemctl daemon-reload
+sudo systemctl enable hygiene-tracker.service
+sudo systemctl start hygiene-tracker.service
+sudo systemctl status hygiene-tracker.service
+```
+
+View logs:
+
+```bash
+journalctl -u hygiene-tracker.service -f
+```
+
+## Development
+
+```bash
+python -m venv .venv
+. .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+python -m unittest discover -s tests
+```
+
+Project layout:
+
+- `src/hygiene_tracker/schedule.py` contains date and due-state logic
+- `src/hygiene_tracker/storage.py` owns SQLite schema, seed data, and history
+- `src/hygiene_tracker/display.py` renders the pygame dashboard
+- `src/hygiene_tracker/framebuffer_display.py` renders directly to `/dev/fb*` without X11
+- `src/hygiene_tracker/buttons.py` maps gpiozero buttons to actions
+- `src/hygiene_tracker/web.py` serves the optional local web UI
+- `src/hygiene_tracker/google_calendar.py` syncs Google Calendar event instances into SQLite
+
+## Repository Notes
+
+- Use `config.example.toml` as the public template; keep local `config.toml`, SQLite databases, and Google OAuth files out of Git.
+- Pull requests should run `python -m unittest discover -s tests` before submission.
+- See `CONTRIBUTING.md` for contribution guidelines and `CHANGELOG.md` for release notes.
+
+## License
+
+This project is available under the MIT License. See `LICENSE` for details.
