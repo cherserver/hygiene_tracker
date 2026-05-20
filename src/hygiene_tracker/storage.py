@@ -166,7 +166,7 @@ class Store:
                     ),
                 )
             )
-        return statuses
+        return sorted(statuses, key=_status_sort_key)
 
     def calendar_statuses(self, today: date | None = None, due_soon_days: int = 3) -> list[TaskStatus]:
         self.initialize()
@@ -203,6 +203,11 @@ class Store:
                     FROM completions
                     WHERE completions.calendar_event_id = calendar_events.id
                   )
+                  AND calendar_events.due_date > COALESCE((
+                    SELECT MAX(task_completions.completed_at)
+                    FROM completions task_completions
+                    WHERE task_completions.task_id = tasks.id
+                  ), '0001-01-01')
                   AND calendar_events.id = (
                     SELECT ce2.id
                     FROM calendar_events ce2
@@ -213,6 +218,11 @@ class Store:
                         FROM completions c2
                         WHERE c2.calendar_event_id = ce2.id
                       )
+                      AND ce2.due_date > COALESCE((
+                        SELECT MAX(task_completions2.completed_at)
+                        FROM completions task_completions2
+                        WHERE task_completions2.task_id = tasks.id
+                      ), '0001-01-01')
                     ORDER BY ce2.due_date ASC, ce2.id ASC
                     LIMIT 1
                   )
@@ -237,7 +247,7 @@ class Store:
                     following_due=date.fromisoformat(row["following_due"]) if row["following_due"] else None,
                 )
             )
-        return statuses
+        return sorted(statuses, key=_status_sort_key)
 
     def last_completed_date(self, task_id: int) -> date | None:
         with self.connect() as conn:
@@ -534,6 +544,20 @@ def _task_from_calendar_row(row: sqlite3.Row) -> Task:
         source=row["source"],
         external_id=row["external_id"],
     )
+
+
+def _status_sort_key(status: TaskStatus) -> tuple[int, int, int, str]:
+    return (_status_period_days(status), status.task.sort_order, status.task.id, status.task.name.lower())
+
+
+def _status_period_days(status: TaskStatus) -> int:
+    if status.previous_due is not None:
+        return max(1, (status.next_due - status.previous_due).days)
+    if status.following_due is not None:
+        return max(1, (status.following_due - status.next_due).days)
+    if status.task.interval_unit == "days":
+        return max(1, status.task.interval_value)
+    return max(1, status.task.interval_value * 30)
 
 
 def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:

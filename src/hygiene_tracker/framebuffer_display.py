@@ -33,9 +33,9 @@ HEADER_H = 38
 FOOTER_H = 28
 CONTENT_PAD = 5
 ROW_GAP = 4
-TASK_X = 50
-RIGHT_W = 86
-RIGHT_PAD = 8
+TASK_X = 52
+RIGHT_W = 68
+RIGHT_PAD = 14
 
 
 class FramebufferDashboard:
@@ -123,11 +123,12 @@ class FramebufferDashboard:
 
         date_text = _format_display_date(date.today())
         date_w = _text_width(draw, date_text, self.font_today)
-        pill = (self.width - date_w - 20, 8, self.width - 8, 29)
+        pill_pad_x = 12
+        pill = (self.width - date_w - pill_pad_x * 2 - 8, 8, self.width - 8, 29)
         _rounded_rectangle(draw, pill, radius=7, fill=(31, 45, 47), outline=LINE)
         if statuses and all(status.due_state in (DueState.OK, DueState.DUE_SOON) for status in statuses):
             _rounded_rectangle(draw, pill, radius=7, fill=None, outline=CLEAN_BAR)
-        draw.text((pill[0] + 9, 11), date_text, fill=TEXT_SOFT, font=self.font_today)
+        draw.text((pill[0] + pill_pad_x, 11), date_text, fill=TEXT_SOFT, font=self.font_today)
         if not gpio_available:
             draw.text((116, 20), "GPIO", fill=WARNING, font=self.font_small)
 
@@ -153,7 +154,7 @@ class FramebufferDashboard:
         border = color if selected else LINE
         rect = (CONTENT_PAD, y, self.width - CONTENT_PAD, y + height)
         _rounded_rectangle(draw, (rect[0] + 1, rect[1] + 2, rect[2] + 1, rect[3] + 2), radius=7, fill=(1, 4, 5))
-        if status.due_state in (DueState.DUE_TODAY, DueState.OVERDUE):
+        if status.due_state == DueState.DUE_TODAY:
             _rounded_rectangle(draw, (rect[0] + 2, rect[1] + 4, rect[0] + 10, rect[3] - 4), radius=4, fill=_mix(color, BG, 0.52))
         _rounded_rectangle(draw, rect, radius=7, fill=bg, outline=border, width=2 if selected else 1)
         draw.line(
@@ -163,12 +164,12 @@ class FramebufferDashboard:
         )
         _rounded_rectangle(draw, (rect[0] + 8, rect[1] + 9, rect[0] + 12, rect[3] - 9), radius=2, fill=color)
 
-        dot_x, dot_y = 30, y + height // 2
+        dot_x, dot_y = 32, y + height // 2
         self._draw_task_mark(draw, (dot_x, dot_y), status.task.name, color, large=False)
         if selected:
             draw.ellipse((dot_x - 2, dot_y - 2, dot_x + 2, dot_y + 2), fill=(232, 246, 243))
 
-        right_x = self.width - RIGHT_W - RIGHT_PAD
+        right_x = self.width - RIGHT_W - RIGHT_PAD - 4
         name_width = right_x - TASK_X - 6
         task_font = self.font_task if height >= 48 else self.font_task_small
         lines = _wrap_to_width(draw, status.task.name, task_font, name_width)[:2]

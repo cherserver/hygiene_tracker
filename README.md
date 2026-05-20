@@ -65,6 +65,27 @@ hygiene-tracker-seed --config /etc/hygiene-tracker/config.toml
 
 Edit `/etc/hygiene-tracker/config.toml`, set `display_backend = "fbdev"` and `framebuffer = "/dev/fb1"` for the confirmed `fb_ili9340` display, and set the BCM GPIO pins for the Argon40 display buttons on your hardware.
 
+## Deploy From Windows
+
+From this repository on the Windows development machine:
+
+```powershell
+.\scripts\deploy.ps1
+```
+
+The deploy script defaults to `cher@hygiene` over SSH pubkey auth. It creates a tar archive of the current working tree, copies it to the Pi, installs the Raspberry Pi OS packages, syncs the app into `/opt/hygiene-tracker`, creates `/etc/hygiene-tracker/config.toml` if missing, seeds the database, installs the systemd unit, and restarts `hygiene-tracker.service`.
+
+Useful options:
+
+```powershell
+.\scripts\deploy.ps1 -SkipApt
+.\scripts\deploy.ps1 -NoRestart
+.\scripts\deploy.ps1 -PythonBin python3.12
+.\scripts\deploy.ps1 -SshTarget cher@hygiene -AppDir /opt/hygiene-tracker
+```
+
+The script preserves an existing `/etc/hygiene-tracker/config.toml` and excludes local databases, virtual environments, `.git`, and temporary test data from the upload.
+
 ## Google Calendar Mode
 
 Calendar mode lets a dedicated Google Calendar drive exact task dates. The app expands recurring Google events into local SQLite rows, so the device still boots and displays the last synced schedule when offline. Marking an item done records local completion history for that event occurrence; it does not edit Google Calendar.

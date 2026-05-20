@@ -169,13 +169,14 @@ class PygameDashboard:
 
         today_text = date.today().strftime("%a %b %d")
         today = self.font_meta_bold.render(today_text, True, TEXT_SOFT)
-        pill_w = today.get_width() + 18
+        pill_pad_x = 12
+        pill_w = today.get_width() + pill_pad_x * 2
         pill_rect = (self.width - pill_w - 10, 8, pill_w, 22)
         pygame.draw.rect(self.screen, (31, 45, 47), pill_rect, border_radius=7)
         pygame.draw.rect(self.screen, LINE, pill_rect, width=1, border_radius=7)
         if statuses and all(status.due_state in (DueState.OK, DueState.DUE_SOON) for status in statuses):
             pygame.draw.rect(self.screen, CLEAN_BAR, pill_rect, width=1, border_radius=7)
-        self.screen.blit(today, (pill_rect[0] + 9, pill_rect[1] + 3))
+        self.screen.blit(today, (pill_rect[0] + pill_pad_x, pill_rect[1] + 3))
         if not gpio_available:
             warn = self.font_tiny.render("GPIO fallback", True, WARNING)
             self.screen.blit(warn, (118, 24))
@@ -202,7 +203,7 @@ class PygameDashboard:
         border = color if selected else LINE
         shadow_rect = (card[0] + 1, card[1] + 2, card[2], card[3])
         pygame.draw.rect(self.screen, (1, 4, 5), shadow_rect, border_radius=7)
-        if status.due_state in (DueState.DUE_TODAY, DueState.OVERDUE):
+        if status.due_state == DueState.DUE_TODAY:
             glow = _mix(color, BG, 0.52)
             pygame.draw.rect(self.screen, glow, (card[0] + 2, card[1] + 4, 8, card[3] - 8), border_radius=4)
         pygame.draw.rect(self.screen, bg, card, border_radius=7)
@@ -216,13 +217,13 @@ class PygameDashboard:
         )
         pygame.draw.rect(self.screen, color, (card[0] + 8, card[1] + 9, 4, card[3] - 18), border_radius=2)
 
-        dot_center = (30, y + height // 2)
+        dot_center = (32, y + height // 2)
         self._draw_task_mark(dot_center, status.task.name, color, large=False)
         if selected:
             pygame.draw.circle(self.screen, (232, 246, 243), dot_center, 2)
 
-        right_w = min(106, max(86, self.width // 3))
-        name_x = 50
+        right_w = min(78, max(68, self.width // 4))
+        name_x = 52
         name_w = self.width - right_w - name_x - 18
         name_lines = _wrap_text_for_width(status.task.name, self.font_task, name_w)[:2]
         line_step = 17
@@ -251,8 +252,8 @@ class PygameDashboard:
         status_label, status_detail = _status_text(status)
         state_text = f"{status_label} {status_detail}".strip()
         state = self.font_small.render(state_text, True, color)
-        due_x = self.width - due.get_width() - 18
-        state_x = self.width - state.get_width() - 18
+        due_x = self.width - due.get_width() - 22
+        state_x = self.width - state.get_width() - 22
         due_y = y + max(8, (height - 34) // 2)
         self.screen.blit(due, (due_x, due_y))
         self.screen.blit(state, (state_x, due_y + 18))

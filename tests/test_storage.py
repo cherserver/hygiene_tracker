@@ -37,6 +37,26 @@ class StorageTest(unittest.TestCase):
         self.assertEqual(cat_status.due_state, DueState.OK)
         self.assertEqual(store.history()[0].task_name, "Cat fountain")
 
+    def test_local_statuses_are_ordered_by_shortest_period_first(self) -> None:
+        store = Store(self.database_path())
+        store.initialize()
+        with store.connect() as conn:
+            conn.executemany(
+                """
+                INSERT INTO tasks (name, interval_value, interval_unit, start_date, sort_order)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    ("Monthly", 1, "months", "2026-04-28", 1),
+                    ("Weekly", 7, "days", "2026-04-28", 2),
+                    ("Daily", 1, "days", "2026-04-28", 3),
+                ],
+            )
+
+        statuses = store.statuses(today=date(2026, 4, 28))
+
+        self.assertEqual([status.task.name for status in statuses], ["Daily", "Weekly", "Monthly"])
+
     def test_calendar_event_drives_next_due_and_done_advances_to_next_instance(self) -> None:
         store = Store(self.database_path())
         store.upsert_calendar_event(
@@ -74,6 +94,65 @@ class StorageTest(unittest.TestCase):
 
         self.assertEqual(next_status.next_due, date(2026, 5, 5))
         self.assertEqual(next_status.due_state, DueState.OK)
+
+    def test_calendar_done_skips_all_missed_instances_up_to_completion_date(self) -> None:
+        store = Store(self.database_path())
+        for day in (9, 16, 23):
+            store.upsert_calendar_event(
+                calendar_id="hygiene@example.com",
+                google_event_id=f"event-{day}",
+                google_recurring_event_id="series-1",
+                summary="Cat fountain",
+                due_date=date(2026, 5, day),
+                start_at=f"2026-05-{day:02d}",
+                end_at=f"2026-05-{day + 1:02d}",
+                status="confirmed",
+                updated_at="2026-05-01T00:00:00Z",
+                html_link="",
+            )
+
+        [status] = store.statuses(today=date(2026, 5, 18))
+        self.assertEqual(status.next_due, date(2026, 5, 9))
+        self.assertEqual(status.due_state, DueState.OVERDUE)
+
+        store.mark_done(status.task.id, completed_at=date(2026, 5, 18), calendar_event_id=status.calendar_event_id)
+        [next_status] = store.statuses(today=date(2026, 5, 18))
+
+        self.assertEqual(next_status.next_due, date(2026, 5, 23))
+        self.assertEqual(next_status.due_state, DueState.OK)
+
+    def test_calendar_statuses_are_ordered_by_inferred_period(self) -> None:
+        store = Store(self.database_path())
+        for due_day in (1, 8):
+            store.upsert_calendar_event(
+                calendar_id="hygiene@example.com",
+                google_event_id=f"weekly-{due_day}",
+                google_recurring_event_id="weekly-series",
+                summary="Weekly task",
+                due_date=date(2026, 5, due_day),
+                start_at=f"2026-05-{due_day:02d}",
+                end_at=f"2026-05-{due_day + 1:02d}",
+                status="confirmed",
+                updated_at="2026-05-01T00:00:00Z",
+                html_link="",
+            )
+        for due_day in (1, 31):
+            store.upsert_calendar_event(
+                calendar_id="hygiene@example.com",
+                google_event_id=f"monthly-{due_day}",
+                google_recurring_event_id="monthly-series",
+                summary="Monthly task",
+                due_date=date(2026, 5, due_day),
+                start_at=f"2026-05-{due_day:02d}",
+                end_at=f"2026-06-01" if due_day == 31 else f"2026-05-{due_day + 1:02d}",
+                status="confirmed",
+                updated_at="2026-05-01T00:00:00Z",
+                html_link="",
+            )
+
+        statuses = store.statuses(today=date(2026, 5, 2))
+
+        self.assertEqual([status.task.name for status in statuses], ["Weekly task", "Monthly task"])
 
     def test_missing_calendar_event_can_be_cancelled_after_sync(self) -> None:
         store = Store(self.database_path())
